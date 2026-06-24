@@ -4,7 +4,9 @@ Claude.ai - versão Sonnet 4.6
  - Melhoria no método de inserir nodos (newNode):
  	- verificação de erro de alocação (if(!new)
 	- uso de strncpy ao invés de strcpy (permite atribuição de um número específico de caracteres, evitando tentar alocar mais do que o struct Avl permite)
-
+ - Uso do fgets e buffer: 
+ 	- fgets não para no primeiro espaço, sendo útil se quiser permitir inserção de frases
+ 	- buf serve como área temporária de armazenamento para o texto digitado pelo usuário antes de processá-lo
 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,6 +31,7 @@ typedef struct cr{
 	Letter *letters;
 } CrossReference;
 
+//Inserção de nodos/letras
 Avl *newNode(char *word){
 	Avl *newNode = (Avl*) malloc(sizeof(Avl));
 	if(!newNode){
@@ -69,6 +72,33 @@ Letter *newLetter(CrossReference *cr, char letter){
 	}
 	return newLetter;
 }
+
+//Funções auxiliares
+void normalize(const char *start, char *end){
+	int j = 0;
+	for (int i = 0; start[i]; i++) {
+        char c = tolower((unsigned char)start[i]);
+        if (c >= 'a' && c <= 'z')
+            end[j++] = c;
+    }
+    end[j] = '\0';
+}
+
+Letter *getLetter(CrossReference *cr, char letter){
+	Letter *prev = NULL, *aux = cr->letters;
+	
+	while(aux && aux->letter < letter){
+		prev = aux;
+		aux = aux->next;
+	}
+	
+	if(aux && aux->letter == letter){
+		return aux;
+	}
+	
+	return NULL;
+}
+
 //Funções AVL
 int getHeight(Avl* n)
 {
@@ -87,6 +117,13 @@ void updateHeight(Avl* n){
 	if(n != NULL){
 		n->height = 1 + max(getHeight(n->left), getHeight(n->right));
 	}
+}
+
+Avl *min(Avl *n){
+	while (n->left){
+		n = n->left;	
+	} 
+    return n;
 }
 
 Avl *rotateRight(Avl *y){
@@ -137,7 +174,6 @@ Avl *balance(Avl *n){
 	
 	return n;
 }
-//
 
 Avl *avlInsert(Avl *root, char *word, int *insert){
 	if(!root){
@@ -157,48 +193,115 @@ Avl *avlInsert(Avl *root, char *word, int *insert){
 	return balance(root);
 }
 
-Letter *getLetter(CrossReference *cr, char letter){
-	Letter *prev = NULL, *aux = cr->letters;
-	
-	while(aux && aux->letter < letter){
-		prev = aux;
-		aux = aux->next;
+Avl *getAvl(Avl *root, const char *word){
+	if(!root){
+		return NULL;
 	}
-	
-	if(aux && aux->letter == letter){
-		return aux;
+	int cmp = strcmp(word, root->word);
+	if(cmp < 0){
+		return getAvl(root->left, word);
 	}
-	
-	return NULL;
+	if(cmp < 0){
+		return getAvl(root->right, word);
+	}
+	return root;
 }
 
-
-void insertText(CrossReference *cr, char *txt){
-	char aux[100];
-	int i = 0, j = 0;
-	int total = strlen(txt);
-	
-	while(i <= total){
-		char c = txt[i];
-		if(isalpha((unsigned char)c)){
-			if(j < 99){
-				aux[j++] = tolower((unsigned char)c);
-			}
-		}	
-		else{
-			if(j > 0){
-				aux[j] = '\0';
-				char letter = aux[0];
-				Letter *l = getLetter(cr, letter);
-				if(!l){
-					l = newLetter(cr, letter);
-				}
-				int insert = 0;
-				l->avl = avlInsert(l->avl, aux, &insert);
-				j = 0;
-			}
+Avl *avlRemove(Avl *root, const char *word, int *removed){
+	if(!root){
+		*removed = 0;
+		return NULL;
+	}
+	int cmp = strcmp(word, root->word);
+	if(cmp < 0){
+		root->left = avlRemove(root->left, word, removed);
+	}
+	else if(cmp > 0){
+		root->right = avlRemove(root->right, word, removed);
+	}
+	else{
+		*removed = 1;
+		if(!root->left || !root->right){
+			Avl *temp = root->left ? root->left : root->right;
+			free(root);
+			return temp;
 		}
-		i++;
+		Avl *suc = min(root->right);
+		strncpy(root->word, suc->word, 99);
+		root->numOc = suc->numOc;
+		int r2 = 0;
+		root->right = avlRemove(root->right, suc->word, &r2);
+	}
+	return balance(root);
+}
+//
+
+//Funções principais
+void insertWord(CrossReference *cr, const char *rawWord){
+	char word[100];
+	normalize(rawWord, word);
+	
+	char letter = word[0];
+	Letter *l = getLetter(cr, letter);
+	if(!l){
+		l = newLetter(cr, letter);
+	}
+	int insert = 0;
+	l->avl = avlInsert(l->avl, word, &insert);
+	
+	if(insert){
+		printf("Palavra '%s' inserida.\n", word);
+	}
+	else{
+		printf("Palavra '%s' ja existe. Contagem de ocorrencias incrementada!\n", word);
+	}
+}
+
+void getWord(CrossReference *cr, const char *rawWord){
+	char word[100];
+	normalize(rawWord, word);
+	
+	if(strlen(word) == 0){
+		printf("Palavra invalida\n");
+		return;
+	}
+	
+	Letter *l = getLetter(cr, word[0]);
+	if(!l){
+		printf("Palavra %s nao encontrada.\n");
+		return;
+	}
+	Avl *avl = getAvl(l->avl, word);
+	if(avl){
+		printf("Palavra '%s' encontrada. Ocorrencias: %d", avl->word, avl->numOc);
+	}
+	else{
+		printf("Palavra '%s' nao encontrada.", word);
+	}
+}
+
+void removeWord(CrossReference *cr, const char *rawWord){
+	char word[100];
+	normalize(rawWord, word);
+	
+	if(strlen(word) == 0){
+		printf("Palavra invalida.\n");
+		return;
+	}
+	
+	Letter *l = getLetter(cr, word[0]);
+	if(!l){
+		printf("Palavra '%s' nao encontrada.\n", word);
+        return;
+	}
+	int removed = 0;
+	l->avl = avlRemove(l->avl, word, &removed);
+	
+	if(removed){
+		printf("Palavra '%s' removida com sucesso.\n", word);
+	}
+	else{
+		printf("Palavra '%s' nao encontrada.\n", word);
 	}
 }
 
@@ -284,6 +387,16 @@ void exibirMaioresOcorrencias(Avl *raiz, int maior){
     }
 }
 
+void avlPostFixNotation(Avl *root){
+	if(!root){
+		return;
+	}
+	avlPostFixNotation(root->left);
+	avlPostFixNotation(root->right);
+	printf("%s \n", root->word);
+}
+
+//Limpeza
 void liberarAvl(Avl *raiz){
     if(raiz){
         liberarAvl(raiz->left);
@@ -305,6 +418,41 @@ void liberarLetras(Letter *letra){
     }
 }
 
+void cleanBuffer(){
+	int c;
+	while((c = getchar()) != '\n' && c != EOF);
+}
+
+//Inicialização
+void insertText(CrossReference *cr, char *txt){
+	char aux[100];
+	int i = 0, j = 0;
+	int total = strlen(txt);
+	
+	while(i <= total){
+		char c = txt[i];
+		if(isalpha((unsigned char)c)){
+			if(j < 99){
+				aux[j++] = tolower((unsigned char)c);
+			}
+		}	
+		else{
+			if(j > 0){
+				aux[j] = '\0';
+				char letter = aux[0];
+				Letter *l = getLetter(cr, letter);
+				if(!l){
+					l = newLetter(cr, letter);
+				}
+				int insert = 0;
+				l->avl = avlInsert(l->avl, aux, &insert);
+				j = 0;
+			}
+		}
+		i++;
+	}
+}
+
 void init(CrossReference *cr){
 	cr->letters = NULL;
 	
@@ -319,24 +467,19 @@ void init(CrossReference *cr){
 	insertText(cr, txt);
 }
 
-int menu(){
-    int op;
-
+void menu(){
     printf("\nEscolha uma opcao:\n");
-    printf("1. Inserir palavra\n");
-    printf("2. Consultar palavra\n");
-    printf("3. Remover palavra\n");
-    printf("4. Ver total de palavras\n");
-    printf("5. Ver total de ocorrencias\n");
-    printf("6. Ver palavras\n");
-    printf("7. Ver palavras por letra\n");
-    printf("8. Ver palavra com maior numero de ocorrencias\n");
-    printf("9. Ver palavras em ordem pre-fixada\n");
-    printf("0. Sair\n");
-
-    scanf("%d", &op);
-
-    return op;
+    printf("1.  Inserir palavra\n");
+    printf("2.  Consultar palavra\n");
+    printf("3.  Remover palavra\n");
+    printf("4.  Ver total de palavras\n");
+    printf("5.  Ver total de ocorrencias\n");
+    printf("6.  Ver palavras\n");
+    printf("7.  Ver palavras por letra\n");
+    printf("8.  Ver palavra com maior numero de ocorrencias\n");
+    printf("9.  Ver palavras em ordem pre-fixada\n");
+    printf("10. Ver palavras em ordem pos-fixada por letra\n");
+    printf("0.  Sair\n");
 }
 
 
@@ -345,22 +488,40 @@ int main(){
     init(&cr);
 
     int op;
-
+	char buf[500];
+	
     do{
-        op = menu();
-
+        menu();
+		if(scanf("%d", &op) != 1){
+			cleanBuffer();
+			continue;
+		}
+		cleanBuffer();
+		
         switch(op){
 
             case 1:
-                printf("Inserir palavra\n");
+                printf("Inserir palavra: \n");
+                if(fgets(buf, sizeof(buf), stdin)){
+                	buf[strcspn(buf, "\n")] = '\0';
+					insertWord(&cr, buf);
+				}
                 break;
 
             case 2:
-                printf("Consultar palavra\n");
+                printf("Informe a palavra a ser consultada: \n");
+                if (fgets(buf, sizeof(buf), stdin)) {
+                    buf[strcspn(buf, "\n")] = '\0';
+                    getWord(&cr, buf);
+                }
                 break;
 
             case 3:
-                printf("Remover palavra\n");
+                printf("Informe a palavra a ser removida:\n");
+                if (fgets(buf, sizeof(buf), stdin)) {
+                    buf[strcspn(buf, "\n")] = '\0';
+                    removeWord(&cr, buf);
+                }
                 break;
 
             case 4:{
@@ -450,9 +611,21 @@ int main(){
                 break;
             }
 
-            case 10:
-                break;
-
+            case 10: {
+            	printf("Digite a letra para exibir em pos-ordem: ");
+            	char letter = getchar();
+            	cleanBuffer();
+            	Letter *l = getLetter(&cr, tolower(letter));
+            	if(!l || !l->avl){
+            		printf("Nenhuma palavra com a letra '%c' encontrada.\n", letter);
+				}
+				else{
+					avlPostFixNotation(l->avl);
+					printf("\n");
+				}
+				break;
+			}
+            	
             case 0:
                 printf("Saindo...\n");
                 break;
@@ -460,6 +633,8 @@ int main(){
             default:
                 printf("Opcao invalida.\n");
         }
+        
+        
 
     }while(op != 0);
 
