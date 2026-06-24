@@ -1,12 +1,12 @@
 /*
-DECLARAÇÃO DO USO DE IA
-Claude.ai - versão Sonnet 4.6
- - Melhoria no método de inserir nodos (newNode):
- 	- verificação de erro de alocação (if(!new)
-	- uso de strncpy ao invés de strcpy (permite atribuição de um número específico de caracteres, evitando tentar alocar mais do que o struct Avl permite)
+DECLARAï¿½ï¿½O DO USO DE IA
+Claude.ai - versï¿½o Sonnet 4.6
+ - Melhoria no mï¿½todo de inserir nodos (newNode):
+ 	- verificaï¿½ï¿½o de erro de alocaï¿½ï¿½o (if(!new)
+	- uso de strncpy ao invï¿½s de strcpy (permite atribuiï¿½ï¿½o de um nï¿½mero especï¿½fico de caracteres, evitando tentar alocar mais do que o struct Avl permite)
  - Uso do fgets e buffer: 
- 	- fgets não para no primeiro espaço, sendo útil se quiser permitir inserção de frases
- 	- buf serve como área temporária de armazenamento para o texto digitado pelo usuário antes de processá-lo
+ 	- fgets nï¿½o para no primeiro espaï¿½o, sendo ï¿½til se quiser permitir inserï¿½ï¿½o de frases
+ 	- buf serve como ï¿½rea temporï¿½ria de armazenamento para o texto digitado pelo usuï¿½rio antes de processï¿½-lo
 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,11 +31,11 @@ typedef struct cr{
 	Letter *letters;
 } CrossReference;
 
-//Inserção de nodos/letras
+//Inserï¿½ï¿½o de nodos/letras
 Avl *newNode(char *word){
 	Avl *newNode = (Avl*) malloc(sizeof(Avl));
 	if(!newNode){
-		fprintf(stderr, "Erro de alocação!\n");
+		fprintf(stderr, "Erro de alocaï¿½ï¿½o!\n");
 		exit(1);
 	}
 	strncpy(newNode->word, word, 99);
@@ -57,7 +57,7 @@ Letter *newLetter(CrossReference *cr, char letter){
 	
 	Letter *newLetter = (Letter *) malloc(sizeof(Letter));
 	if(!newLetter){
-		fprintf(stderr, "Erro de alocação\n");
+		fprintf(stderr, "Erro de alocaï¿½ï¿½o\n");
 		exit(1);
 	}
 	newLetter->letter = letter;
@@ -73,7 +73,7 @@ Letter *newLetter(CrossReference *cr, char letter){
 	return newLetter;
 }
 
-//Funções auxiliares
+//Funï¿½ï¿½es auxiliares
 void normalize(const char *start, char *end){
 	int j = 0;
 	for (int i = 0; start[i]; i++) {
@@ -99,7 +99,7 @@ Letter *getLetter(CrossReference *cr, char letter){
 	return NULL;
 }
 
-//Funções AVL
+//Funï¿½ï¿½es AVL
 int getHeight(Avl* n)
 {
 	return n == NULL ? 0 : n->height;
@@ -201,7 +201,7 @@ Avl *getAvl(Avl *root, const char *word){
 	if(cmp < 0){
 		return getAvl(root->left, word);
 	}
-	if(cmp < 0){
+	if(cmp > 0){
 		return getAvl(root->right, word);
 	}
 	return root;
@@ -236,7 +236,7 @@ Avl *avlRemove(Avl *root, const char *word, int *removed){
 }
 //
 
-//Funções principais
+//Funï¿½ï¿½es principais
 void insertWord(CrossReference *cr, const char *rawWord){
 	char word[100];
 	normalize(rawWord, word);
@@ -423,7 +423,7 @@ void cleanBuffer(){
 	while((c = getchar()) != '\n' && c != EOF);
 }
 
-//Inicialização
+//Inicializaï¿½ï¿½o
 void insertText(CrossReference *cr, char *txt){
 	char aux[100];
 	int i = 0, j = 0;
@@ -457,12 +457,12 @@ void init(CrossReference *cr){
 	cr->letters = NULL;
 	
 	char *txt = 
-		"o menino viu o gato no muro o gato pulo o muro e foi para a rua a rua estava"
-		"deserta e o gato correu rapido o menino correu atras do gato mas o gato"
-		"sumiu na noite a noite estava escura e o menino sentiu medo o medo fez o"
-		"menino voltar para a casa a casa estava quente e o pai do menino estava na"
-		"sala o pai perguntou do gato e o menino disse que o gato fugiu para a rua"
-		"entao o pai e o menino foram procurar o gato de novo no muro";
+		"o menino viu o gato no muro o gato pulo o muro e foi para a rua a rua estava "
+		"deserta e o gato correu rapido o menino correu atras do gato mas o gato "
+		"sumiu na noite a noite estava escura e o menino sentiu medo o medo fez o "
+		"menino voltar para a casa a casa estava quente e o pai do menino estava na "
+		"sala o pai perguntou do gato e o menino disse que o gato fugiu para a rua "
+		"entao o pai e o menino foram procurar o gato de novo no muro ";
 		
 	insertText(cr, txt);
 }
