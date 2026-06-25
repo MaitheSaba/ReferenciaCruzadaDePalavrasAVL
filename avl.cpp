@@ -406,6 +406,34 @@ void liberarAvl(Avl *raiz){
     }
 }
 
+void exibirOrdemSemContador(Avl *raiz){
+	if(raiz){
+		exibirOrdemSemContador(raiz->left);
+		printf("%s\n", raiz->word);
+		exibirOrdemSemContador(raiz->right);
+	}
+}
+
+void exibirOrdemInversaSemContador(Avl *raiz){
+	if(raiz){
+		exibirOrdemInversaSemContador(raiz->right);
+		printf("%s\n", raiz->word);
+		exibirOrdemInversaSemContador(raiz->left);
+	}
+}
+
+void exibirTodasInverso(Letter *letra, int contador){
+	if(letra == NULL)
+		return;
+
+	exibirTodasInverso(letra->next, contador);
+
+	if(contador)
+		exibirEmOrdemInversa(letra->avl);
+	else
+		exibirOrdemInversaSemContador(letra->avl);
+}
+
 void liberarLetras(Letter *letra){
     while(letra){
         Letter *aux = letra;
@@ -474,10 +502,10 @@ void menu(){
     printf("3.  Remover palavra\n");
     printf("4.  Ver total de palavras\n");
     printf("5.  Ver total de ocorrencias\n");
-    printf("6.  Ver palavras\n");
-    printf("7.  Ver palavras por letra\n");
+	printf("6.  Ver todas as palavras\n");
+	printf("7.  Ver palavras por letra\n");
     printf("8.  Ver palavra com maior numero de ocorrencias\n");
-    printf("9.  Ver palavras em ordem pre-fixada\n");
+    printf("9.  Ver palavras em ordem pre-fixada por letra\n");
     printf("10. Ver palavras em ordem pos-fixada por letra\n");
     printf("0.  Sair\n");
 }
@@ -550,34 +578,101 @@ int main(){
                 break;
             }
 
-            case 6:{
-                Letter *aux = cr.letters;
+        	case 6:{
+            	int modo;
 
-                while(aux){
-                    exibirEmOrdem(aux->avl);
-                    aux = aux->next;
-                }
+            	printf("\n1 - A-Z\n");
+            	printf("2 - Z-A\n");
+            	printf("3 - A-Z com contadores\n");
+            	printf("4 - Z-A com contadores\n");
+            	printf("Opcao: ");
+            	scanf("%d", &modo);
+            	cleanBuffer();
 
-                break;
-            }
+            	Letter *aux;
 
-            case 7:{
-                char letra;
+            	switch(modo){
 
-                printf("Digite a letra: ");
-                scanf(" %c", &letra);
+            		case 1:
+            			aux = cr.letters;
+            			while(aux){
+            				exibirOrdemInversaSemContador(aux->avl);
+            				aux = aux->next;
+            			}
+            			break;
 
-                letra = tolower(letra);
+            		case 2:
+            			exibirTodasInverso(cr.letters, 0);
+            			break;
 
-                Letter *l = getLetter(&cr, letra);
+            		case 3:
+            			aux = cr.letters;
+            			while(aux){
+            				exibirEmOrdem(aux->avl);
+            				aux = aux->next;
+            			}
+            			break;
 
-                if(l)
-                    exibirEmOrdem(l->avl);
-                else
-                    printf("Nao existem palavras com essa letra.\n");
+            		case 4:
+            			exibirTodasInverso(cr.letters, 1);
+            			break;
 
-                break;
-            }
+            		default:
+            			printf("Opcao invalida.\n");
+            	}
+
+            	break;
+        	}
+
+        	case 7:{
+            	char letra;
+            	int modo;
+
+            	printf("Digite a letra: ");
+            	scanf(" %c", &letra);
+            	cleanBuffer();
+
+            	letra = tolower((unsigned char)letra);
+
+            	Letter *l = getLetter(&cr, letra);
+
+            	if(!l){
+            		printf("Nao existem palavras com essa letra.\n");
+            		break;
+            	}
+
+            	printf("\n1 - A-Z\n");
+            	printf("2 - Z-A\n");
+            	printf("3 - A-Z com contadores\n");
+            	printf("4 - Z-A com contadores\n");
+            	printf("Opcao: ");
+            	scanf("%d", &modo);
+            	cleanBuffer();
+
+            	switch(modo){
+
+            		case 1:
+            			exibirOrdemSemContador(l->avl);
+            			break;
+
+            		case 2:
+            			exibirOrdemInversaSemContador(l->avl);
+            			break;
+
+            		case 3:
+            			exibirEmOrdem(l->avl);
+            			break;
+
+            		case 4:
+            			exibirEmOrdemInversa(l->avl);
+            			break;
+
+            		default:
+            			printf("Opcao invalida.\n");
+            	}
+
+            	break;
+        	}
 
             case 8:{
                 int maior = 0;
@@ -600,16 +695,24 @@ int main(){
                 break;
             }
 
-            case 9:{
-                Letter *aux = cr.letters;
+        	case 9: {
+            	printf("Digite a letra para exibir em pre-ordem: ");
 
-                while(aux){
-                    exibirPreFixado(aux->avl);
-                    aux = aux->next;
-                }
+            	char letter = getchar();
+            	cleanBuffer();
 
-                break;
-            }
+            	Letter *l = getLetter(&cr, tolower(letter));
+
+            	if(!l || !l->avl){
+            		printf("Nenhuma palavra com a letra '%c' encontrada.\n", letter);
+            	}
+            	else{
+            		exibirPreFixado(l->avl);
+            		printf("\n");
+            	}
+
+            	break;
+        	}
 
             case 10: {
             	printf("Digite a letra para exibir em pos-ordem: ");
